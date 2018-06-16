@@ -1,4 +1,4 @@
-function [ L,cellNum,cellBorder,mat_raw,mat_pri,mat_border,mat_mod ] = csSteveMethod( I,varargin )
+function [ L,cellNum,cellBorder,mat_raw,mat_pri,mat_border,mat_mod, priObject ] = csSteveMethod( I,varargin )
     %ref:https://blogs.mathworks.com/steve/2006/06/02/cell-segmentation/
     % posted by Steve Eddins
     % options:
@@ -13,6 +13,7 @@ function [ L,cellNum,cellBorder,mat_raw,mat_pri,mat_border,mat_mod ] = csSteveMe
     % Border_is_Filling (default true);
     % Border_is_Opening (default true)
     % Border_is_Eleminating (default true)
+    % is_Simiauto (default false)
     
     if nargin == 1
         options = genDefaultSteveOption;
@@ -51,6 +52,10 @@ function [ L,cellNum,cellBorder,mat_raw,mat_pri,mat_border,mat_mod ] = csSteveMe
         if ~isfield(options,'Border_is_Filling')
             options.Border_is_Filling = 1;
         end
+        
+        if ~isfield(options,'is_Semiauto')
+            options.is_Semiauto = 0;
+        end
     end
     
     mat_raw = I./max(I(:));
@@ -58,12 +63,16 @@ function [ L,cellNum,cellBorder,mat_raw,mat_pri,mat_border,mat_mod ] = csSteveMe
         mat_raw = adapthisteq(mat_raw);
     end
     
-    priObject = imextendedmax(mat_raw,options.H);
-    if options.Object_is_Closing
-        priObject = imclose(priObject,ones(options.Object_Closing_Radius));
-    end
-    if options.Object_is_Filling
-        priObject = imfill(priObject,'holes');
+    if options.is_Semiauto
+        priObject = varargin{2};
+    else
+        priObject = imextendedmax(mat_raw,options.H);
+        if options.Object_is_Closing
+            priObject = imclose(priObject,ones(options.Object_Closing_Radius));
+        end
+        if options.Object_is_Filling
+            priObject = imfill(priObject,'holes');
+        end
     end
     
     mat_pri = imoverlay(mat_raw,priObject,[1,.3,.3]);
@@ -82,6 +91,8 @@ function [ L,cellNum,cellBorder,mat_raw,mat_pri,mat_border,mat_mod ] = csSteveMe
     mat_border = imoverlay(mat_raw,borderObject,[1,.3,.3]);
     
     mat_mod = imimposemin(imcomplement(mat_raw),~borderObject|priObject);
+    
+    %mat_mod = mat_mod | ~borderObject;
     
     L = watershed(mat_mod);
     cellNum = max(L(:)) - 1; % 0 border, 1 background

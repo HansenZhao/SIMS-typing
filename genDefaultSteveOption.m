@@ -23,5 +23,6 @@ function [ option ] = genDefaultSteveOption()
     option.Border_is_Eleminating = 1;
     option.Border_Eleminating = 10;   
     option.Border_is_Filling = 1;
+    option.is_Semiauto = 0;
 end
 

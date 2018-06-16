@@ -22,7 +22,7 @@ function varargout = csSteveMethodViewer(varargin)
 
 % Edit the above text to modify the response to help csSteveMethodViewer
 
-% Last Modified by GUIDE v2.5 15-Jun-2018 16:30:40
+% Last Modified by GUIDE v2.5 16-Jun-2018 18:08:15
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -56,6 +56,7 @@ function csSteveMethodViewer_OpeningFcn(hObject, eventdata, handles, varargin)
 handles.output = hObject;
 handles.curCellID = -1;
 handles.maxCellID = 0;
+handles.priObject = [];
 
 
 % Update handles structure
@@ -184,10 +185,11 @@ function cb_border_is_filling_Callback(hObject, eventdata, handles)
 try
     handles.options.Border_is_Filling = get(hObject,'Value');
     refreshUI(handles);
-    [mat_raw,L] = procImage(hObject,handles);
+    [mat_raw,L,priObject] = procImage(hObject,handles);
     handles.mat_raw = mat_raw;
     handles.L = L;
     handles.maxCellID = max(L(:));
+    handles.priObject = priObject;
     guidata(hObject,handles);
     return;
 catch
@@ -202,12 +204,13 @@ function cb_border_is_open_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 try
-    handles.options.Border_is_Opening = get(hOject,'Value');
+    handles.options.Border_is_Opening = get(hObject,'Value');
     refreshUI(handles);
-    [mat_raw,L] = procImage(hObject,handles);
+    [mat_raw,L,priObject] = procImage(hObject,handles);
     handles.mat_raw = mat_raw;
     handles.L = L;
     handles.maxCellID = max(L(:));
+    handles.priObject = priObject;
     guidata(hObject,handles);
     return;
 catch
@@ -262,15 +265,16 @@ function cb_border_is_eleminate_Callback(hObject, eventdata, handles)
 try
     handles.options.Border_is_Eleminating = get(hObject,'Value');
     refreshUI(handles);
-    [mat_raw,L] = procImage(hObject,handles);
+    [mat_raw,L,priObject] = procImage(hObject,handles);
     handles.mat_raw = mat_raw;
     handles.L = L;
     handles.maxCellID = max(L(:));
+    handles.priObject = priObject;
     guidata(hObject,handles);
     return;
 catch
 end
-set(hObject,'String',num2str(handles.options.Border_is_Eleminating));
+set(hObject,'Value',handles.options.Border_is_Eleminating);
 % Hint: get(hObject,'Value') returns toggle state of cb_border_is_eleminate
 
 
@@ -320,15 +324,16 @@ function cb_is_clahe_Callback(hObject, eventdata, handles)
 try
     handles.options.is_CLAHE = get(hObject,'Value');
     refreshUI(handles);
-    [mat_raw,L] = procImage(hObject,handles);
+    [mat_raw,L,priObject] = procImage(hObject,handles);
     handles.mat_raw = mat_raw;
     handles.L = L;
     handles.maxCellID = max(L(:));
+    handles.priObject = priObject;
     guidata(hObject,handles);
     return;
 catch
 end
-set(hObject,'Value',num2str(handles.options.is_CLAHE));
+set(hObject,'Value',handles.options.is_CLAHE);
 % Hint: get(hObject,'Value') returns toggle state of cb_is_clahe
 
 
@@ -386,7 +391,7 @@ try
     return;
 catch
 end
-set(hObject,'Value',num2str(handles.options.Object_is_Closing));
+set(hObject,'Value',handles.options.Object_is_Closing);
 % Hint: get(hObject,'Value') returns toggle state of cb_object_is_closing
 
 
@@ -396,17 +401,18 @@ function cb_object_is_filling_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 try
-    handles.options.Object_is_Filling = tmp;
+    handles.options.Object_is_Filling = get(hObject,'Value');
     refreshUI(handles);
-    [mat_raw,L] = procImage(hObject,handles);
+    [mat_raw,L,priObject] = procImage(hObject,handles);
     handles.mat_raw = mat_raw;
     handles.L = L;
     handles.maxCellID = max(L(:));
+    handles.priObject = priObject;
     guidata(hObject,handles);
     return;
 catch
 end
-set(hObject,'String',num2str(handles.options.Object_is_Filling));
+set(hObject,'Value',handles.options.Object_is_Filling);
 % Hint: get(hObject,'Value') returns toggle state of cb_object_is_filling
 
 
@@ -456,9 +462,10 @@ function btn_load_file_Callback(hObject, eventdata, handles)
 handles.SIMSData = SIMSTxtData();
 handles.options = genDefaultSteveOption;
 refreshUI(handles);
-[mat_raw,L] = procImage(hObject,handles);
+[mat_raw,L,priObject] = procImage(hObject,handles);
 handles.mat_raw = mat_raw;
 handles.L = L;
+handles.priObject = priObject;
 handles.maxCellID = max(L(:));
 guidata(hObject,handles);
 
@@ -473,6 +480,7 @@ handles.curCellID = -1;
 handles.maxCellID = 0;
 handles.mat_raw = [];
 handles.L = [];
+handles.priObject = [];
 cla(handles.axes_raw);
 cla(handles.axes_pri);
 cla(handles.axes_border);
@@ -533,11 +541,20 @@ function refreshUI(handles)
         handles.edt_border_eleminate_thres.Enable = 'off';
     end
     
+    handles.cb_semiauto.Value = handles.options.is_Semiauto;
+    if handles.cb_semiauto.Value
+        handles.btn_add.Enable = 'on';
+        handles.btn_minus.Enable = 'on';
+    else
+        handles.btn_add.Enable = 'off';
+        handles.btn_minus.Enable = 'off';
+    end
+    
     handles.ed_id.String = num2str(handles.curCellID);
     
-function [mat_raw,L] = procImage(hObject,handles)
-    [L,~,~,mat_raw,mat_pri,mat_border,mat_mod] = csSteveMethod(...
-                                  handles.SIMSData.rawMat,handles.options);
+function [mat_raw,L,priObject] = procImage(hObject,handles)
+    [L,~,~,mat_raw,mat_pri,mat_border,mat_mod,priObject] = csSteveMethod(...
+                                  handles.SIMSData.rawMat,handles.options,handles.priObject);
     imagesc(handles.axes_raw,mat_raw); colormap('gray');
     imagesc(handles.axes_pri,mat_pri);
     imagesc(handles.axes_border,mat_border);
@@ -569,3 +586,77 @@ function refreshFinalBorder(handles)
     imagesc(handles.axes_final_border,imFinalBorder);
 
     
+
+
+% --- Executes on button press in cb_semiauto.
+function cb_semiauto_Callback(hObject, eventdata, handles)
+% hObject    handle to cb_semiauto (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+try
+    handles.options.is_Semiauto = get(hObject,'Value');
+    refreshUI(handles);
+    [mat_raw,L,priObject] = procImage(hObject,handles);
+    handles.mat_raw = mat_raw;
+    handles.L = L;
+    handles.maxCellID = max(L(:));
+    handles.priObject = priObject;
+    guidata(hObject,handles);
+    return;
+catch
+end
+set(hObject,'Value',handles.options.is_Semiauto);
+% Hint: get(hObject,'Value') returns toggle state of cb_semiauto
+
+
+% --- Executes on button press in btn_add.
+function btn_add_Callback(hObject, eventdata, handles)
+% hObject    handle to btn_add (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+hf = figure;
+h = roipoly(handles.axes_pri.Children.CData);
+close(hf);
+handles.priObject = handles.priObject | h;
+[mat_raw,L,priObject] = procImage(hObject,handles);
+handles.mat_raw = mat_raw;
+handles.L = L;
+handles.maxCellID = max(L(:));
+handles.priObject = priObject;
+guidata(hObject,handles);
+
+% --- Executes on button press in btn_minus.
+function btn_minus_Callback(hObject, eventdata, handles)
+% hObject    handle to btn_minus (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+hf = figure;
+h = roipoly(handles.axes_pri.Children.CData);
+close(hf);
+handles.priObject = handles.priObject & (~h);
+[mat_raw,L,priObject] = procImage(hObject,handles);
+handles.mat_raw = mat_raw;
+handles.L = L;
+handles.maxCellID = max(L(:));
+handles.priObject = priObject;
+guidata(hObject,handles);
+
+% --- Executes on button press in btn_excell.
+function btn_excell_Callback(hObject, eventdata, handles)
+% hObject    handle to btn_excell (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --- Executes on button press in btn_loadms.
+function btn_loadms_Callback(hObject, eventdata, handles)
+% hObject    handle to btn_loadms (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --- Executes on button press in btn_cellprofile.
+function btn_cellprofile_Callback(hObject, eventdata, handles)
+% hObject    handle to btn_cellprofile (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
