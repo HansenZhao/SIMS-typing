@@ -7,14 +7,18 @@ classdef SIMSTxtData
         shotsPerPixel;
         imageSize;
         rawMat;
+        fp;
+        fn;
     end
     
     methods
-        function obj = SIMSTxtData(fpath)
+        function obj = SIMSTxtData(fp,fn)
             if nargin == 0
                 [fn,fp] = uigetfile('*.txt');
-                fpath = strcat(fp,fn);
-            end
+            end          
+            fpath = strcat(fp,fn);
+            obj.fp = fp;
+            obj.fn = fn;
             try
                 fid = fopen(fpath);
                 curStr = fgetl(fid);
@@ -51,8 +55,11 @@ classdef SIMSTxtData
                         %m = strsplit(curStr,' ');
                         %obj.rawMat(curPoint) = str2double(m{3});
                         
-                        m = regexp(curStr,'\S+ \S+ (?<name>\S+)','names');
-                        obj.rawMat(curPoint) = str2double(m.name);
+                        %m = regexp(curStr,'\S+ \S+ (?<name>\S+)','names');
+                        %obj.rawMat(curPoint) = str2double(m.name);
+                        
+                        m = sscanf(curStr,'%d %d %f');
+                        obj.rawMat(curPoint) = m(end);
                         
                         curPoint = curPoint + 1;
                     catch
