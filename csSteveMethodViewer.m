@@ -230,10 +230,11 @@ try
     if tmp>=0
         handles.options.Border_Open_Radius = tmp;
         refreshUI(handles);
-        [mat_raw,L] = procImage(hObject,handles);
+        [mat_raw,L,priObject] = procImage(hObject,handles);
         handles.mat_raw = mat_raw;
         handles.L = L;
         handles.maxCellID = max(L(:));
+        handles.priObject = priObject;
         guidata(hObject,handles);
         return;
     end
@@ -512,6 +513,7 @@ function btn_save_option_Callback(hObject, eventdata, handles)
 function refreshUI(handles)
     handles.cb_is_clahe.Value = handles.options.is_CLAHE;
     handles.edt_H.String = num2str(handles.options.H);
+    handles.tx_cellnum.String = num2str(handles.maxCellID);
     
     handles.cb_object_is_closing.Value = handles.options.Object_is_Closing;
     handles.edt_object_closing_radius.String = handles.options.Object_Closing_Radius;
@@ -646,6 +648,12 @@ function btn_excell_Callback(hObject, eventdata, handles)
 % hObject    handle to btn_excell (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+try
+    handles.L(handles.L==handles.curCellID) = 1;
+    guidata(hObject,handles);
+    refreshFinalBorder(handles);
+catch
+end
 
 
 % --- Executes on button press in btn_loadms.
@@ -653,6 +661,23 @@ function btn_loadms_Callback(hObject, eventdata, handles)
 % hObject    handle to btn_loadms (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+try
+    [fn,fp] = listFile('*.txt',handles.SIMSData.fp(1:(end-1)));
+    L = length(fn);
+    handles.msAssem = SIMSDataAssem();
+    guidata(hObject,handles);
+    hbar = waitbar(0,'loading...');
+    for m = 1:1:L
+        handles.msAssem.addFile(fp{m},fn{m});
+        waitbar(m/L,hbar);
+    end
+    close(hbar);
+    handles.msAssem.sortMS();
+    guidata(hObject,handles);
+catch e
+    rethrow(e);
+    warndlg('loading failed');
+end
 
 
 % --- Executes on button press in btn_cellprofile.
@@ -660,3 +685,9 @@ function btn_cellprofile_Callback(hObject, eventdata, handles)
 % hObject    handle to btn_cellprofile (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+try
+    [mz,intens] = handles.msAssem.getMSByIndex(handles.L==handles.curCellID);
+    figure;
+    plot(mz,intens);
+catch
+end
