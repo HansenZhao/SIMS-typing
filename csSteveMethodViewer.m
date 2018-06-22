@@ -116,7 +116,7 @@ function btn_last_cell_Callback(hObject, eventdata, handles)
 % hObject    handle to btn_last_cell (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-if handles.curCellID > 2
+if handles.curCellID > 1
     handles.curCellID = handles.curCellID - 1;
 else
     handles.curCellID = handles.maxCellID;
@@ -133,7 +133,7 @@ function btn_next_cell_Callback(hObject, eventdata, handles)
 if handles.curCellID < handles.maxCellID
     handles.curCellID = handles.curCellID + 1;
 else
-    handles.curCellID = 2;
+    handles.curCellID = 1;
 end
 set(handles.ed_id,'String',num2str(handles.curCellID));
 guidata(hObject,handles)
@@ -488,6 +488,7 @@ cla(handles.axes_border);
 cla(handles.axes_mod);
 cla(handles.axes_final_border);
 cla(handles.axes_label);
+guidata(hObject,handles);
 
 % --- Executes on button press in btn_load_option.
 function btn_load_option_Callback(hObject, eventdata, handles)
@@ -501,6 +502,67 @@ function btn_save_Callback(hObject, eventdata, handles)
 % hObject    handle to btn_save (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+res = inputdlg({'include background','is excute border cell','append sample name'},'SMM',1,{'0','0','0'});
+if ~isempty(res)
+    if str2double(res{1})
+        startID = 1;
+    else
+        startID = 2;
+    end
+    borderThes = str2double(res{2});
+    if res{3}=='0'
+        appSampleName = [];
+    elseif res{3} == 's'
+        appSampleName = handles.SIMSData.sampleName;
+    else
+        appSampleName = res{3};
+    end
+    path = uigetdir();
+    L = handles.maxCellID - startID + 1;
+    sampleName = cell(L,1);
+    msdata = zeros(L,handles.msAssem.nMS);
+    pos = zeros(L,2);
+    doneNum = 1;
+    for m = startID:handles.maxCellID
+        [b,xy] = isInborder(handles.L==m,borderThes);
+        if ~b
+            if isempty(appSampleName)
+                sampleName{doneNum} = num2str(m);
+            else
+                sampleName{doneNum} = sprintf('%s-%d',appSampleName,m);
+            end
+            handles.curCellID = m;
+            guidata(hObject,handles)
+            refreshFinalBorder(handles);
+            [~,intens] = handles.msAssem.getMSByIndex(handles.L==handles.curCellID);
+            msdata(doneNum,:) = intens';
+            pos(doneNum,:) = xy;
+            
+            f = getframe(handles.axes_final_border);
+
+            imwrite(f.cdata,sprintf('%s//%s.png',path,sampleName{doneNum}),'png');   
+            
+            doneNum = doneNum + 1;
+        end
+    end
+    msdata(doneNum:end,:) = [];
+    mz = handles.msAssem.mz;
+    save(sprintf('%s//data.mat',path),'msdata','mz','sampleName','pos');
+end
+
+function [b,xy] = isInborder(L,thres)
+    len = size(L,1);
+    coverNum = sum(L(:));
+    [x,y] = find(L);
+    isBorder = or(x==1|x==len,y==1|y==len);
+    if thres >= 1
+        b = sum(isBorder) > thres;
+    elseif thres > 0
+        b = sum(isBorder)/coverNum > thres;
+    else
+        b = 0;
+    end
+    xy = mean([x,y]);
 
 
 % --- Executes on button press in btn_save_option.
@@ -586,6 +648,8 @@ function [mat_raw,L,priObject] = procImage(hObject,handles)
 function refreshFinalBorder(handles)
     imFinalBorder = imoverlay(handles.mat_raw,handles.L==0|handles.L==handles.curCellID,[1,.3,.3]);
     imagesc(handles.axes_final_border,imFinalBorder);
+    handles.axes_final_border.XTick =[];
+    handles.axes_final_border.YTick =[];
 
     
 
@@ -668,6 +732,7 @@ try
     guidata(hObject,handles);
     hbar = waitbar(0,'loading...');
     for m = 1:1:L
+        %disp(m);
         handles.msAssem.addFile(fp{m},fn{m});
         waitbar(m/L,hbar);
     end

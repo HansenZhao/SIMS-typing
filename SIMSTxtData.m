@@ -1,4 +1,4 @@
-classdef SIMSTxtData
+classdef SIMSTxtData < handle
     
     properties(SetAccess = private)
         sampleName;
@@ -21,6 +21,7 @@ classdef SIMSTxtData
             obj.fn = fn;
             try
                 fid = fopen(fpath);
+                
                 curStr = fgetl(fid);
                 while ~isempty(curStr) && curStr(1)=='#'
                     if contains(curStr,'Source Filename:')
@@ -28,10 +29,9 @@ classdef SIMSTxtData
                         obj.sampleName = m.name;
                     elseif contains(curStr,'Source Interval:')
                         m = regexp(curStr,'Source Interval: (?<name>\S+) \S+','names');
-                        if strcmp(m.name,'total')
+                        obj.mz = str2double(m.name);
+                        if isnan(obj.mz)
                             obj.mz = -1;
-                        else
-                            obj.mz = str2double(m.name);
                         end
                     elseif contains(curStr,'Field of View')
                         m = regexp(curStr,'Field of View: (?<name>\S+) \S+','names');
@@ -69,8 +69,11 @@ classdef SIMSTxtData
                 if curPoint ~= (obj.imageSize^2 + 1)
                     warning('Parsing number not much!');
                 end
+                fclose(fid);
             catch e
-                close(fid);
+                if exist('fid','var')
+                    fclose(fid);
+                end
                 disp(e);
             end
         end
