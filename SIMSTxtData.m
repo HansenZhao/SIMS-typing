@@ -45,30 +45,32 @@ classdef SIMSTxtData < handle
                     end
                     curStr = fgetl(fid);
                 end
-                obj.rawMat = zeros(obj.imageSize);
-                curPoint = 1;
-                while ~isnumeric(curStr)
-                    try
-                        %m = str2double(strsplit(curStr,' '));
-                        %obj.rawMat(curPoint) = m(3);
-                        
-                        %m = strsplit(curStr,' ');
-                        %obj.rawMat(curPoint) = str2double(m{3});
-                        
-                        %m = regexp(curStr,'\S+ \S+ (?<name>\S+)','names');
-                        %obj.rawMat(curPoint) = str2double(m.name);
-                        
-                        m = sscanf(curStr,'%d %d %f');
-                        obj.rawMat(curPoint) = m(end);
-                        
-                        curPoint = curPoint + 1;
-                    catch
-                    end
-                    curStr = fgetl(fid);
-                end
-                if curPoint ~= (obj.imageSize^2 + 1)
-                    warning('Parsing number not much!');
-                end
+                tmp = fscanf(fid,'%d %d %f');
+                obj.rawMat = reshape(tmp(3*(1:(256*256))),[obj.imageSize,obj.imageSize]);
+%                 obj.rawMat = zeros(obj.imageSize);
+%                 curPoint = 1;
+%                 while ~isnumeric(curStr)
+%                     try
+%                         %m = str2double(strsplit(curStr,' '));
+%                         %obj.rawMat(curPoint) = m(3);
+%                         
+%                         %m = strsplit(curStr,' ');
+%                         %obj.rawMat(curPoint) = str2double(m{3});
+%                         
+%                         %m = regexp(curStr,'\S+ \S+ (?<name>\S+)','names');
+%                         %obj.rawMat(curPoint) = str2double(m.name);
+%                         
+%                         m = sscanf(curStr,'%d %d %f');
+%                         obj.rawMat(curPoint) = m(end);
+%                         
+%                         curPoint = curPoint + 1;
+%                     catch
+%                     end
+%                     curStr = fgetl(fid);
+%                 end
+%                 if curPoint ~= (obj.imageSize^2 + 1)
+%                     warning('Parsing number not much!');
+%                 end
                 fclose(fid);
             catch e
                 if exist('fid','var')
