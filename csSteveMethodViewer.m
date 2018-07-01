@@ -495,6 +495,17 @@ function btn_load_option_Callback(hObject, eventdata, handles)
 % hObject    handle to btn_load_option (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+[fn,fp] = uigetfile('*.mat');
+res = load(strcat(fp,fn));
+handles.options = res.opt;
+refreshUI(handles);
+[mat_raw,L,priObject] = procImage(hObject,handles);
+handles.mat_raw = mat_raw;
+handles.L = L;
+handles.maxCellID = max(L(:));
+handles.priObject = priObject;
+guidata(hObject,handles);
+
 
 
 % --- Executes on button press in btn_save.
@@ -522,6 +533,7 @@ if ~isempty(res)
     sampleName = cell(L,1);
     msdata = zeros(L,handles.msAssem.nMS);
     pos = zeros(L,2);
+    labelData = zeros(handles.SIMSData.imageSize,handles.SIMSData.imageSize,L);
     doneNum = 1;
     for m = startID:handles.maxCellID
         [b,xy] = isInborder(handles.L==m,borderThes);
@@ -534,6 +546,7 @@ if ~isempty(res)
             handles.curCellID = m;
             guidata(hObject,handles)
             refreshFinalBorder(handles);
+            labelData(:,:,doneNum) = handles.L==handles.curCellID;
             [~,intens] = handles.msAssem.getMSByIndex(handles.L==handles.curCellID);
             msdata(doneNum,:) = intens';
             pos(doneNum,:) = xy;
@@ -547,7 +560,10 @@ if ~isempty(res)
     end
     msdata(doneNum:end,:) = [];
     mz = handles.msAssem.mz;
-    save(sprintf('%s//data.mat',path),'msdata','mz','sampleName','pos');
+    priObject = handles.priObject;
+    opt = handles.options;
+    save(sprintf('%s//option.mat',path),'opt');
+    save(sprintf('%s//data.mat',path),'msdata','mz','sampleName','pos','labelData','priObject');
 end
 
 function [b,xy] = isInborder(L,thres)
@@ -570,6 +586,9 @@ function btn_save_option_Callback(hObject, eventdata, handles)
 % hObject    handle to btn_save_option (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+[fn,fp] = uiputfile('*.mat');
+opt = handles.options;
+save(strcat(fp,fn),'opt');
 
 
 function refreshUI(handles)
