@@ -559,6 +559,9 @@ if ~isempty(res)
         end
     end
     msdata(doneNum:end,:) = [];
+    pos(doneNum:end,:) = [];
+    labelData(:,:,doneNum:end) = [];
+    sampleName(doneNum:end) = [];
     mz = handles.msAssem.mz;
     priObject = handles.priObject;
     opt = handles.options;
