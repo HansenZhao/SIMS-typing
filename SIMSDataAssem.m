@@ -8,6 +8,7 @@ classdef SIMSDataAssem < handle
      properties (Dependent)
         nMS;       
         imageSize;
+        sumRes;
     end
     
     methods
@@ -25,6 +26,27 @@ classdef SIMSDataAssem < handle
                 n = size(obj.dataMat{1},1);
             catch
                 n = 0;
+            end
+        end
+        
+        function r = get.sumRes(obj)
+            r = zeros(obj.imageSize);
+            if ~isempty(obj.dataMat)
+                for m = 1:obj.nMS
+                    r = r + obj.dataMat{m};
+                end
+            end
+        end
+        
+        function addFiles(obj)
+            fp = uigetdir();
+            [fn,fp] = listFile('*.txt',fp);
+            L = length(fn);
+            for m = 1:L
+                obj.addFile(fp{m},fn{m});
+                if mod(m,100) == 0
+                    fprintf(1,'%d/%d\n',m,L);
+                end
             end
         end
         
@@ -46,6 +68,7 @@ classdef SIMSDataAssem < handle
                 obj.dataMat{end+1} = sd.rawMat;
                 obj.mz(end+1) = sd.mz;
             end
+            obj.sortMS();
         end
         
         function sortMS(obj)
@@ -59,6 +82,42 @@ classdef SIMSDataAssem < handle
             for m = 1:1:obj.nMS
                 intens(m) = mean(obj.dataMat{m}(L));
             end
+        end
+        
+        function [t,cellPos] = toSC(obj,refMask,method)
+            if size(refMask,1) ~= obj.imageSize
+                disp('inconsistence image size');
+                return;
+            end
+            ids = unique(refMask);
+            L = length(ids);
+            if ~exist('method','var')
+                method = 'mean';
+            end
+            pixelVolume = zeros(L,1);
+            meanX = zeros(L,1);
+            meanY = zeros(L,1);
+            cellPos = cell(L,1);
+            data = zeros(L,obj.nMS);
+            switch method
+                case 'mean'
+                    hfunc = @(x,I)mean(x(I));
+                case 'max'
+                    hfunc = @(x,I)max(x(I));
+            end
+            for m = 1:1:L
+                pixelVolume(m) = sum(refMask(:) == ids(m));
+                tmp = refMask==ids(m);
+                [X,Y] = find(tmp);
+                meanX(m) = mean(X);
+                meanY(m) = mean(Y);
+%                 cellPos{m} = imoverlay(obj.sumRes/max(obj.sumRes(:)),bwperim(tmp),[1,0,0]);
+                cellPos{m} = imoverlay(obj.sumRes/max(obj.sumRes(:)),tmp,[1,0,0]);
+                for n = 1:obj.nMS               
+                    data(m,n) = hfunc(obj.dataMat{n},tmp);
+                end
+            end
+            t = table(ids,pixelVolume,meanX,meanY,data);
         end
     end
     
