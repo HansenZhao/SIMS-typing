@@ -74,7 +74,8 @@ function [ L,cellNum,cellBorder,mat_raw,mat_pri,mat_border,mat_mod, priObject ] 
             priObject = imfill(priObject,'holes');
         end
     end
-    
+    priObject = bwareaopen(priObject,30);
+    priObject = imclearborder(priObject,4);
     mat_pri = imoverlay(mat_raw,priObject,[1,.3,.3]);
     
     borderObject = imbinarize(mat_raw,options.Border_thres);
