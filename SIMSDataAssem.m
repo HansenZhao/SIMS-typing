@@ -38,26 +38,32 @@ classdef SIMSDataAssem < handle
             end
         end
         
-        function addFiles(obj)
+        function addFiles(obj,mzCheck)
+            if ~exist('mzCheck','var')
+                mzCheck = 1;
+            end
             fp = uigetdir();
             [fn,fp] = listFile('*.txt',fp);
             L = length(fn);
             for m = 1:L
-                obj.addFile(fp{m},fn{m});
+                obj.addFile(fp{m},fn{m},mzCheck);
                 if mod(m,100) == 0
                     fprintf(1,'%d/%d\n',m,L);
                 end
             end
         end
         
-        function addFile(obj,fp,fn)
+        function addFile(obj,fp,fn,mzCheck)
+            if ~exist('mzCheck','var')
+                mzCheck = 1;
+            end
             if nargin == 1
                 sd = SIMSTxtData();
             else
                 sd = SIMSTxtData(fp,fn);
             end
             
-            if sd.mz < 0
+            if sd.mz < 0 && mzCheck
                 return;
             end
             
